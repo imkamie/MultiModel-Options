@@ -24,15 +24,16 @@ class Bachelier:
         interest_rate = self.interest_rate
         volatility = self.volatility
 
+        disc = exp(-interest_rate * time_to_maturity)
         F = current_price * exp(interest_rate * time_to_maturity)
         d = (F - strike_price) / (volatility * sqrt(time_to_maturity))
 
-        self.call_price = exp(-interest_rate * time_to_maturity) * (
+        self.call_price = disc * (
             (F - strike_price) * norm.cdf(d)
             + volatility * sqrt(time_to_maturity) * norm.pdf(d)
         )
 
-        self.put_price = exp(-interest_rate * time_to_maturity) * (
+        self.put_price = disc * (
             (strike_price - F) * norm.cdf(-d)
             + volatility * sqrt(time_to_maturity) * norm.pdf(d)
         )

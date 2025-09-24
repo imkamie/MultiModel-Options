@@ -2,7 +2,7 @@ from numpy import exp, sqrt, log
 from scipy.stats import norm
 
 
-class BlackSholes:
+class BlackScholes:
     def __init__(
         self,
         time_to_maturity: float,
