@@ -38,7 +38,7 @@ st.markdown(
 }
 
 .metric-pnl {
-     background-color: #D7EDFA; /* Light blue background */
+    background-color: #D7EDFA; /* Light blue background */
 }
 
 /* Style for the value text */
@@ -204,6 +204,7 @@ purchase_price_put = st.sidebar.number_input(
     "Purchase price (Put)", value=float(put_price), min_value=0.0, step=0.01
 )
 
+st.sidebar.markdown("---")
 st.sidebar.markdown("## Heatmap Settings (Spot \u00d7 Vol)")
 S0 = float(user_params.get("current_price", 100.0))
 sig0 = float(user_params.get("volatility", 0.25))
