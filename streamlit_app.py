@@ -66,7 +66,7 @@ MODELS = {
     "Black-Scholes-Merton": {
         "constructor": BlackScholes,
         "params": {
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.0, 50.0, 0.01),
+            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
             "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
             "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
             "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),

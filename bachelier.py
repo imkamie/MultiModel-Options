@@ -1,8 +1,31 @@
-from numpy import exp, sqrt
+import numpy as np
+
 from scipy.stats import norm
 
 
 class Bachelier:
+    """
+    European option pricing under the Bachelier (normal) model, no dividends (q = 0).
+
+    Assumptions:
+        - time_to_maturity > 0
+        - volatility > 0 and is a *normal* (absolute) vol in price units per sqrt(year),
+          not a lognormal vol (i.e., sigma_N with the same units as the underlying).
+        - current_price > 0, strike_price > 0
+        - interest_rate is the continuously compounded risk-free rate.
+
+    Notation (inside run()):
+        F   : forward price with q=0, F = S * e^{rT}
+        disc: discount factor, e^{-rT}
+        d   : (F - K) / (sigma_N * sqrt(T))
+        Call = disc * [ (F - K) N(d) + sigma_N sqrt(T) φ(d) ]
+        Put  = disc * [ (K - F) N(-d) + sigma_N sqrt(T) φ(d) ]
+
+    Notes:
+        - Put-call parity holds: Call - Put = disc * (F - K).
+        - With continuous dividend yield q, replace F = S * e^{(r-q)T}.
+    """
+
     def __init__(
         self,
         time_to_maturity: float,
@@ -24,22 +47,27 @@ class Bachelier:
         interest_rate = self.interest_rate
         volatility = self.volatility
 
-        disc = exp(-interest_rate * time_to_maturity)
-        F = current_price * exp(interest_rate * time_to_maturity)
-        d = (F - strike_price) / (volatility * sqrt(time_to_maturity))
+        # Discount factor e^(-r*T)
+        disc = np.exp(-interest_rate * time_to_maturity)
 
+        # Forward price under q=0: F = S * e^(r*T)
+        # (If you later add a dividend yield q, use F = S * e^((r - q)T).)
+        F = current_price * np.exp(interest_rate * time_to_maturity)
+
+        # Normalized moneyness under the normal model
+        # (volatility is absolute; denominator has units of price)
+        d = (F - strike_price) / (volatility * np.sqrt(time_to_maturity))
+
+        # Bachelier (normal) call price:
+        # C = disc * [ (F - K) N(d) + sigma_N sqrt(T) φ(d) ]
         self.call_price = disc * (
             (F - strike_price) * norm.cdf(d)
-            + volatility * sqrt(time_to_maturity) * norm.pdf(d)
+            + volatility * np.sqrt(time_to_maturity) * norm.pdf(d)
         )
 
+        # Bachelier (normal) put price:
+        # P = disc * [ (K - F) N(-d) + sigma_N sqrt(T) φ(d) ]
         self.put_price = disc * (
             (strike_price - F) * norm.cdf(-d)
-            + volatility * sqrt(time_to_maturity) * norm.pdf(d)
+            + volatility * np.sqrt(time_to_maturity) * norm.pdf(d)
         )
-
-        # self.put_price = (
-        #     self.call_price
-        #     - current_price
-        #     + exp(-interest_rate * time_to_maturity) * strike_price
-        # )
