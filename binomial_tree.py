@@ -61,7 +61,7 @@ class BinomialTree:
         if not (0.0 <= self.p <= 1.0):
             raise ValueError(f"Risk-neutral probability out of bounds: p={self.p}")
 
-    def build_price_tree(self):
+    def _build_price_tree(self):
         """
         Build recombining upper-triangular price tree S where:
         S[i, j] = price after i steps with j up-moves (0 <= j <= i).
@@ -89,7 +89,7 @@ class BinomialTree:
 
         return S
 
-    def backward_value(self, S, payoff_fn):
+    def _backward_value(self, S, payoff_fn):
         """
         Vectorized backward induction.
 
@@ -137,7 +137,7 @@ class BinomialTree:
         Builds S, prices both call and put via backward induction.
         Prices at t=0 are call_P[0,0] and put_P[0,0].
         """
-        S = self.build_price_tree()
+        S = self._build_price_tree()
 
         # Payoff functions
         def call_payoff(x):
@@ -147,5 +147,5 @@ class BinomialTree:
             return np.maximum(self.strike_price - x, 0.0)
 
         # Price trees (and exercise masks if American)
-        self.call_P, self.call_exercise = self.backward_value(S, call_payoff)
-        self.put_P, self.put_exercise = self.backward_value(S, put_payoff)
+        self.call_P, self.call_exercise = self._backward_value(S, call_payoff)
+        self.put_P, self.put_exercise = self._backward_value(S, put_payoff)

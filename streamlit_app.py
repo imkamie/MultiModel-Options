@@ -7,6 +7,8 @@ import seaborn as sns
 from black_scholes import BlackScholes
 from binomial_tree import BinomialTree
 from bachelier import Bachelier
+from monte_carlo_gbm import MonteCarloGBM
+from helpers import render_params_mc, render_params_generic
 
 st.set_page_config(
     page_title="Options Pricing",
@@ -99,11 +101,36 @@ MODELS = {
     "Bachelier (Normal)": {
         "constructor": Bachelier,
         "params": {
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.0, 50.0, 0.01),
+            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
             "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
             "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
             "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
             "volatility": ("Normal vol σₙ (price units)", 5.0, 1e-9, 1e6, 0.01),
+        },
+        "run": lambda inst: (inst.run(), inst.call_price, inst.put_price),
+        "show_prices": lambda inst: (inst.call_price, inst.put_price),
+    },
+    "Monte Carlo (GBM)": {
+        "constructor": MonteCarloGBM,
+        "params": {
+            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
+            "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
+            "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
+            "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
+            "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
+            "dividend_yield": ("Dividend yield q", 0.00, -1.0, 1.0, 0.01),
+            "is_american": (
+                "Exercise style",
+                0,
+                0,
+                1,
+                1,
+            ),
+            "n_paths": ("MC paths (integer)", 20000, 1000, 2_000_000, 1000),
+            "steps": ("LSM steps (American only)", 50, 1, 2000, 1),
+            "antithetic": ("Antithetic variates", 1, 0, 1, 1),  # 0/1 for your UI loop
+            "control_variate": ("Control variate (European only)", 1, 0, 1, 1),
+            "seed": ("Random seed (integer)", 42, 0, 2**31 - 1, 1),
         },
         "run": lambda inst: (inst.run(), inst.call_price, inst.put_price),
         "show_prices": lambda inst: (inst.call_price, inst.put_price),
@@ -128,30 +155,10 @@ st.sidebar.markdown("## Parameters")
 user_params = {}
 
 # Render number inputs according to the schema
-for key, (label, default, minv, maxv, step) in cfg["params"].items():
-    if key == "is_american":
-        choice = st.sidebar.selectbox(
-            label, ["European", "American"], index=1
-        )  # default = American (index 1) or 0 for European
-        user_params[key] = choice == "American"
-    elif key == "steps":
-        val = st.sidebar.number_input(
-            label,
-            value=float(default),
-            min_value=float(minv),
-            max_value=float(maxv),
-            step=float(step),
-        )
-        user_params[key] = int(val)
-    else:
-        user_params[key] = st.sidebar.number_input(
-            label,
-            value=float(default),
-            min_value=float(minv),
-            max_value=float(maxv),
-            step=float(step),
-        )
-
+if model_name.startswith("Monte Carlo"):
+    user_params = render_params_mc()
+else:
+    user_params = render_params_generic(cfg)
 
 # Instantiate model with only the args it expects (by name)
 ModelClass = cfg["constructor"]
