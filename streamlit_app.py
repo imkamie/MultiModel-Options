@@ -79,6 +79,24 @@ st.markdown(
 
 st.title("MultiModel Options")
 
+st.markdown(
+    """
+Here you can experiment with different option pricing models — Black-Scholes, Binomial Trees, Bachelier, and Monte Carlo — and see how option prices and P&L change under various market scenarios.
+
+#### How to use this app:
+- **Choose a model** in the sidebar. Each model has its own configurable parameters.
+- **Parameters section** lets you set the option contract details (spot, strike, maturity, volatility, etc.).
+- **P&L Inputs** allow you to specify your position size and purchase prices to calculate mark-to-market profit & loss.
+- **Heatmap Settings** control the scenario ranges for Spot and Volatility, so you can visualize how P&L changes across different market conditions.
+
+#### What you see on the page:
+- **CALL and PUT Prices**: Theoretical values computed from the selected model.
+- **Current P&L (Mark-to-Market)**: Shows your profit or loss if you bought at the given purchase price.
+- **P&L Heatmaps (Spot \u00d7 Volatility)**: Scenario analysis grids.  
+"""
+)
+
+
 MODELS = make_models_dict()
 
 st.sidebar.title(":chart_with_upwards_trend: MultiModel Options")
@@ -172,7 +190,7 @@ tau = st.sidebar.number_input(
 pnl_now_call = qty * (float(call_price) - purchase_price_call)
 pnl_now_put = qty * (float(put_price) - purchase_price_put)
 
-st.subheader("Current P&L (Mark-to-Market)")
+st.markdown("## Current P&L (Mark-to-Market)")
 pc, pp = st.columns(2)
 with pc:
     st.markdown(
@@ -200,7 +218,7 @@ PNL_CALL, PNL_PUT = build_pnl_surfaces(
 )
 
 # PLOT HEATMAPS
-st.subheader("P&L Heatmaps (Spot \u00d7 Volatility)")
+st.markdown("## P&L Heatmaps (Spot \u00d7 Volatility)")
 
 cmap = mcolors.LinearSegmentedColormap.from_list(
     "red_white_green", ["red", "white", "green"]

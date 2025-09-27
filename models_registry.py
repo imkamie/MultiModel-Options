@@ -18,16 +18,16 @@ def make_models_dict():
             "run": lambda inst: (inst.run(), *BinomialTree.show_prices(inst)),
             "show_prices": BinomialTree.show_prices,
         },
-        "Bachelier (Normal)": {
-            "constructor": Bachelier,
-            "params": Bachelier.PARAMS,
-            "run": lambda inst: (inst.run(), *Bachelier.show_prices(inst)),
-            "show_prices": Bachelier.show_prices,
-        },
         "Monte Carlo (GBM)": {
             "constructor": MonteCarloGBM,
             "params": MonteCarloGBM.PARAMS,
             "run": lambda inst: (inst.run(), *MonteCarloGBM.show_prices(inst)),
             "show_prices": MonteCarloGBM.show_prices,
+        },
+        "Bachelier (Normal)": {
+            "constructor": Bachelier,
+            "params": Bachelier.PARAMS,
+            "run": lambda inst: (inst.run(), *Bachelier.show_prices(inst)),
+            "show_prices": Bachelier.show_prices,
         },
     }
