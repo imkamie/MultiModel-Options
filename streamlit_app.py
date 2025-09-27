@@ -2,13 +2,18 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
-import seaborn as sns
 
 from black_scholes import BlackScholes
 from binomial_tree import BinomialTree
 from bachelier import Bachelier
 from monte_carlo_gbm import MonteCarloGBM
-from helpers import render_params_mc, render_params_generic
+from helpers import (
+    render_params_mc,
+    render_params_generic,
+    metric_box_html,
+    draw_heatmap,
+    build_pnl_surfaces,
+)
 
 st.set_page_config(
     page_title="Options Pricing",
@@ -171,27 +176,13 @@ st.markdown("## " + model_name)
 col1, col2 = st.columns(2)
 
 with col1:
-    # Using the custom class for CALL value
     st.markdown(
-        f"""
-        <div class="metric-container metric-call">
-            <div class="metric-label">CALL price</div>
-            <div class="metric-value">${call_price:.2f}</div>
-        </div>
-    """,
-        unsafe_allow_html=True,
+        metric_box_html("CALL price", call_price, "metric-call"), unsafe_allow_html=True
     )
 
 with col2:
-    # Using the custom class for PUT value
     st.markdown(
-        f"""
-        <div class="metric-container metric-put">
-            <div class="metric-label">PUT price</div>
-            <div class="metric-value">${put_price:.2f}</div>
-        </div>
-    """,
-        unsafe_allow_html=True,
+        metric_box_html("PUT price", put_price, "metric-put"), unsafe_allow_html=True
     )
 
 # Tiny note for Bachelier users
@@ -236,94 +227,31 @@ pnl_now_put = qty * (float(put_price) - purchase_price_put)
 st.subheader("Current P&L (Mark-to-Market)")
 pc, pp = st.columns(2)
 with pc:
-    # Using the custom class for CALL value
     st.markdown(
-        f"""
-        <div class="metric-container metric-pnl">
-            <div class="metric-label">CALL P&L</div>
-            <div class="metric-value">${pnl_now_call:.2f}</div>
-        </div>
-    """,
-        unsafe_allow_html=True,
+        metric_box_html("CALL P&L", pnl_now_call, "metric-pnl"), unsafe_allow_html=True
     )
 
 with pp:
-    # Using the custom class for PUT value
     st.markdown(
-        f"""
-        <div class="metric-container metric-pnl">
-            <div class="metric-label">PUT P&L</div>
-            <div class="metric-value">${pnl_now_put:.2f}</div>
-        </div>
-    """,
-        unsafe_allow_html=True,
+        metric_box_html("PUT P&L", pnl_now_put, "metric-pnl"), unsafe_allow_html=True
     )
-
-
-# PRICER WRAPPER FOR SCENARIOS
-def price_with_current_model(
-    model_name: str, base_params: dict, S: float, sigma: float, tau: float, which: str
-) -> float:
-    p = dict(base_params)
-    p["current_price"] = S
-    p["time_to_maturity"] = tau
-
-    if model_name.startswith("Bachelier"):
-        p["volatility"] = sigma  # normal vol (price units)
-        m = Bachelier(
-            time_to_maturity=p["time_to_maturity"],
-            current_price=p["current_price"],
-            strike_price=p["strike_price"],
-            interest_rate=p["interest_rate"],
-            volatility=p["volatility"],
-        )
-        m.run()
-        return m.call_price if which == "Call" else m.put_price
-
-    elif model_name.startswith("Black-Scholes"):
-        p["volatility"] = sigma
-        m = BlackScholes(
-            time_to_maturity=p["time_to_maturity"],
-            current_price=p["current_price"],
-            strike_price=p["strike_price"],
-            interest_rate=p["interest_rate"],
-            volatility=p["volatility"],
-        )
-        m.run()
-        return m.call_price if which == "Call" else m.put_price
-
-    else:  # Binomial (CRR)
-        p["volatility"] = sigma
-        m = BinomialTree(
-            steps=int(p["steps"]),
-            time_to_maturity=p["time_to_maturity"],
-            strike_price=p["strike_price"],
-            current_price=p["current_price"],
-            volatility=p["volatility"],
-            interest_rate=p["interest_rate"],
-            dividend_yield=p["dividend_yield"],
-            is_american=bool(p["is_american"]),
-        )
-        m.run()
-        return m.call_P[(0, 0)] if which == "Call" else m.put_P[(0, 0)]
 
 
 # BUILD HEATMAPS
 S_grid = np.linspace(S_min, S_max, 10)
 V_grid = np.linspace(V_min, V_max, 10)
-PNL_CALL = np.zeros((10, 10))
-PNL_PUT = np.zeros((10, 10))
 
-for i, sigma in enumerate(V_grid):
-    for j, S in enumerate(S_grid):
-        mtm_call = price_with_current_model(
-            model_name, user_params, S, sigma, tau, "Call"
-        )
-        mtm_put = price_with_current_model(
-            model_name, user_params, S, sigma, tau, "Put"
-        )
-        PNL_CALL[i, j] = qty * (mtm_call - purchase_price_call)
-        PNL_PUT[i, j] = qty * (mtm_put - purchase_price_put)
+PNL_CALL, PNL_PUT = build_pnl_surfaces(
+    model_name,
+    user_params,
+    S_grid,
+    V_grid,
+    tau,
+    qty,
+    purchase_price_call,
+    purchase_price_put,
+)
+
 
 # PLOT HEATMAPS
 st.subheader("P&L Heatmaps (Spot \u00d7 Volatility)")
@@ -335,39 +263,12 @@ cmap = mcolors.LinearSegmentedColormap.from_list(
 h1, h2 = st.columns(2)
 with h1:
     fig_c, ax_c = plt.subplots(figsize=(10, 8))
-    sns.heatmap(
-        PNL_CALL,
-        xticklabels=np.round(S_grid, 2),
-        yticklabels=np.round(V_grid, 2),
-        annot=True,
-        fmt=".2f",
-        cmap=cmap,
-        center=0,
-        ax=ax_c,
-    )
-    ax_c.invert_yaxis()
-    ax_c.set_xlabel("Spot S (scenario)")
-    ax_c.set_ylabel("Volatility (scenario)")
-    ax_c.set_title("CALL P&L Heatmap")
+    draw_heatmap(ax_c, PNL_CALL, S_grid, V_grid, "CALL P&L Heatmap", cmap)
     st.pyplot(fig_c)
-
 
 with h2:
     fig_p, ax_p = plt.subplots(figsize=(10, 8))
-    sns.heatmap(
-        PNL_PUT,
-        xticklabels=np.round(S_grid, 2),
-        yticklabels=np.round(V_grid, 2),
-        annot=True,
-        fmt=".2f",
-        cmap=cmap,
-        center=0,
-        ax=ax_p,
-    )
-    ax_p.invert_yaxis()
-    ax_p.set_xlabel("Spot S (scenario)")
-    ax_p.set_ylabel("Volatility (scenario)")
-    ax_p.set_title("PUT P&L Heatmap")
+    draw_heatmap(ax_p, PNL_PUT, S_grid, V_grid, "PUT P&L Heatmap", cmap)
     st.pyplot(fig_p)
 
 st.caption(

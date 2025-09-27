@@ -1,4 +1,11 @@
 import streamlit as st
+import numpy as np
+import seaborn as sns
+
+from black_scholes import BlackScholes
+from binomial_tree import BinomialTree
+from bachelier import Bachelier
+from monte_carlo_gbm import MonteCarloGBM
 
 
 def _num(label, value, minv, maxv, step, *, cast=float):
@@ -70,3 +77,125 @@ def render_params_generic(cfg):
         else:
             p[key] = _num(label, default, minv, maxv, step)
     return p
+
+
+def metric_box_html(label: str, value: float, css_class: str) -> str:
+    return f"""
+        <div class="metric-container {css_class}">
+            <div class="metric-label">{label}</div>
+            <div class="metric-value">${value:.2f}</div>
+        </div>
+    """
+
+
+def draw_heatmap(
+    ax, data, S_grid, V_grid, title: str, cmap, center: float = 0.0, annot: bool = True
+):
+    sns.heatmap(
+        data,
+        xticklabels=np.round(S_grid, 2),
+        yticklabels=np.round(V_grid, 2),
+        annot=annot,
+        fmt=".2f",
+        cmap=cmap,
+        center=center,
+        ax=ax,
+    )
+    ax.invert_yaxis()
+    ax.set_xlabel("Spot S (scenario)")
+    ax.set_ylabel("Volatility (scenario)")
+    ax.set_title(title)
+
+
+def _price_with_current_model(
+    model_name: str, base_params: dict, S: float, sigma: float, tau: float, which: str
+) -> float:
+    p = dict(base_params)
+    p["current_price"] = S
+    p["time_to_maturity"] = tau
+
+    if model_name.startswith("Bachelier"):
+        p["volatility"] = sigma  # normal vol (price units)
+        m = Bachelier(
+            time_to_maturity=p["time_to_maturity"],
+            current_price=p["current_price"],
+            strike_price=p["strike_price"],
+            interest_rate=p["interest_rate"],
+            volatility=p["volatility"],
+        )
+        m.run()
+        return m.call_price if which == "Call" else m.put_price
+
+    elif model_name.startswith("Black-Scholes"):
+        p["volatility"] = sigma
+        m = BlackScholes(
+            time_to_maturity=p["time_to_maturity"],
+            current_price=p["current_price"],
+            strike_price=p["strike_price"],
+            interest_rate=p["interest_rate"],
+            volatility=p["volatility"],
+        )
+        m.run()
+        return m.call_price if which == "Call" else m.put_price
+
+    elif model_name.startswith("Monte Carlo"):
+        p["volatility"] = sigma
+        m = MonteCarloGBM(
+            time_to_maturity=p["time_to_maturity"],
+            current_price=p["current_price"],
+            strike_price=p["strike_price"],
+            interest_rate=p["interest_rate"],
+            volatility=p["volatility"],
+            dividend_yield=p.get("dividend_yield", 0.0),
+            is_american=bool(p.get("is_american", False)),
+            n_paths=int(p.get("n_paths", 20000)),
+            steps=int(p.get("steps", 50)),
+            antithetic=bool(p.get("antithetic", True)),
+            control_variate=bool(p.get("control_variate", True)),
+            seed=int(p.get("seed", 42)),
+        )
+        m.run()
+        return m.call_price if which == "Call" else m.put_price
+
+    else:  # Binomial (CRR)
+        p["volatility"] = sigma
+        m = BinomialTree(
+            steps=int(p["steps"]),
+            time_to_maturity=p["time_to_maturity"],
+            strike_price=p["strike_price"],
+            current_price=p["current_price"],
+            volatility=p["volatility"],
+            interest_rate=p["interest_rate"],
+            dividend_yield=p["dividend_yield"],
+            is_american=bool(p["is_american"]),
+        )
+        m.run()
+        return m.call_P[(0, 0)] if which == "Call" else m.put_P[(0, 0)]
+
+
+def build_pnl_surfaces(
+    model_name: str,
+    base_params: dict,
+    S_grid,
+    V_grid,
+    tau: float,
+    qty: float,
+    price_paid_call: float,
+    price_paid_put: float,
+):
+    nV, nS = len(V_grid), len(S_grid)
+    PNL_CALL = np.zeros((nV, nS))
+    PNL_PUT = np.zeros((nV, nS))
+
+    for i, sigma in enumerate(V_grid):
+        for j, S in enumerate(S_grid):
+            mtm_call = _price_with_current_model(
+                model_name, base_params, S, sigma, tau, "Call"
+            )
+            mtm_put = _price_with_current_model(
+                model_name, base_params, S, sigma, tau, "Put"
+            )
+            PNL_CALL[i, j] = qty * (mtm_call - price_paid_call)
+            PNL_PUT[i, j] = qty * (mtm_put - price_paid_put)
+
+    return PNL_CALL, PNL_PUT
