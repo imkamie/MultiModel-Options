@@ -41,19 +41,35 @@ st.markdown(
     background-color: #FFBEBC; /* Light red background */
 }
 
+/* Custom class for P&L values */
 .metric-pnl {
     background-color: #D7EDFA; /* Light blue background */
 }
 
 /* Style for the value text */
 .metric-value {
-    font-size: 1.8rem; /* Adjust font size */
+    font-size: 1.6rem; /* Adjust font size */
     font-weight: bold;
 }
 
 /* Style for the label text */
 .metric-label {
-    font-size: 1.2rem; /* Adjust font size */
+    font-size: 1rem; /* Adjust font size */
+}
+
+.contact-container {
+    background-color: #FFFFFF;
+    padding: 0px 6px 6px;
+    border-radius: 8px;
+}
+
+.contact-container a {
+    font-style: normal;
+    text-decoration: none;
+}
+
+.contact-container .label {
+    font-style: italic;
 }
 
 </style>
@@ -67,10 +83,18 @@ MODELS = make_models_dict()
 
 st.sidebar.title(":chart_with_upwards_trend: MultiModel Options")
 
-st.sidebar.write("`Created by:`")
+# st.sidebar.write("Created by:")
 linkedin_url = "https://www.linkedin.com/in/kamila-nurkhametova/"
 st.sidebar.markdown(
-    f'<a href="{linkedin_url}" target="_blank" style="text-decoration: none; color: inherit;"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="24" height="24" style="vertical-align: middle; margin-right: 10px;">`Kamila Nurkhametova`</a>',
+    f"""
+        <div class="contact-container">
+            <div class="label">Created by:</div>
+            <a href="{linkedin_url}" target="_blank">
+                <img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="24" height="24" style="margin-right: 6px;">
+                Kamila Nurkhametova
+            </a>
+        <div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -130,13 +154,15 @@ S0 = float(user_params.get("current_price", 100.0))
 sig0 = float(user_params.get("volatility", 0.25))
 T0 = float(user_params.get("time_to_maturity", 0.5))
 
-S_min = st.sidebar.number_input("Spot min", value=max(0.0, 0.5 * S0))
-S_max = st.sidebar.number_input("Spot max", value=1.5 * S0)
 
-V_min = st.sidebar.number_input(
-    "Vol min", value=0.5 * sig0, help="For Bachelier this is normal vol (price units)"
+S_min, S_max = st.sidebar.slider(
+    "Spot price range (S)", 0.0, 5_000.0, (max(0.0, 0.5 * S0), 1.5 * S0)
 )
-V_max = st.sidebar.number_input("Vol max", value=1.5 * sig0)
+
+V_min, V_max = st.sidebar.slider(
+    "Volatility range (σ)", 0.0, 5.0, (0.5 * sig0, 1.5 * sig0)
+)
+
 
 tau = st.sidebar.number_input(
     "Time to expiry for MTM (years)", value=T0, min_value=0.0, max_value=T0
