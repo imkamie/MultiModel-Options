@@ -16,6 +16,18 @@ class BlackScholes:
         - call_gamma, put_gamma  (gamma is identical for call/put)
     """
 
+    PARAMS = {
+        "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
+        "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
+        "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
+        "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
+        "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
+    }
+
+    @staticmethod
+    def show_prices(inst):
+        return inst.call_price, inst.put_price
+
     def __init__(
         self,
         time_to_maturity: float,

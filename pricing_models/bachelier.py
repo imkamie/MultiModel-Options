@@ -26,6 +26,18 @@ class Bachelier:
         - With continuous dividend yield q, replace F = S * e^{(r-q)T}.
     """
 
+    PARAMS = {
+        "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
+        "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
+        "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
+        "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
+        "volatility": ("Normal vol σₙ (price units)", 5.0, 1e-9, 1e6, 0.01),
+    }
+
+    @staticmethod
+    def show_prices(inst):
+        return inst.call_price, inst.put_price
+
     def __init__(
         self,
         time_to_maturity: float,

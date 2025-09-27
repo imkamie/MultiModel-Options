@@ -23,6 +23,25 @@ class MonteCarloGBM:
         - call_price, put_price
     """
 
+    PARAMS = {
+        "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
+        "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
+        "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
+        "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
+        "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
+        "dividend_yield": ("Dividend yield q", 0.00, -1.0, 1.0, 0.01),
+        "is_american": ("Exercise style", 0, 0, 1, 1),
+        "n_paths": ("MC paths (integer)", 20000, 1000, 2_000_000, 1000),
+        "steps": ("LSM steps (American only)", 50, 1, 2000, 1),
+        "antithetic": ("Antithetic variates", 1, 0, 1, 1),
+        "control_variate": ("Control variate (European only)", 1, 0, 1, 1),
+        "seed": ("Random seed (integer)", 42, 0, 2**31 - 1, 1),
+    }
+
+    @staticmethod
+    def show_prices(inst):
+        return inst.call_price, inst.put_price
+
     def __init__(
         self,
         time_to_maturity: float,

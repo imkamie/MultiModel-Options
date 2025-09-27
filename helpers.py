@@ -2,10 +2,10 @@ import streamlit as st
 import numpy as np
 import seaborn as sns
 
-from black_scholes import BlackScholes
-from binomial_tree import BinomialTree
-from bachelier import Bachelier
-from monte_carlo_gbm import MonteCarloGBM
+from pricing_models.black_scholes import BlackScholes
+from pricing_models.binomial_tree import BinomialTree
+from pricing_models.bachelier import Bachelier
+from pricing_models.monte_carlo_gbm import MonteCarloGBM
 
 
 def _num(label, value, minv, maxv, step, *, cast=float):

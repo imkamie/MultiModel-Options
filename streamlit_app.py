@@ -3,10 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as mcolors
 
-from black_scholes import BlackScholes
-from binomial_tree import BinomialTree
-from bachelier import Bachelier
-from monte_carlo_gbm import MonteCarloGBM
+from models_registry import make_models_dict
 from helpers import (
     render_params_mc,
     render_params_generic,
@@ -64,83 +61,9 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-
 st.title("MultiModel Options")
 
-
-# Each param is: (label, default, min, max, step)
-MODELS = {
-    "Black-Scholes-Merton": {
-        "constructor": BlackScholes,
-        "params": {
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
-            "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
-            "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
-            "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
-            "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
-        },
-        "run": lambda inst: (inst.run(), inst.call_price, inst.put_price),
-        "show_prices": lambda inst: (inst.call_price, inst.put_price),
-    },
-    "Binomial (CRR)": {
-        "constructor": BinomialTree,
-        "params": {
-            "steps": ("Tree steps (integer)", 200, 1, 5000, 1),
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.0, 50.0, 0.01),
-            "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
-            "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
-            "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
-            "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
-            "dividend_yield": ("Dividend yield q", 0.00, -1.0, 1.0, 0.01),
-            "is_american": (
-                "Exercise style",
-                0,
-                0,
-                1,
-                1,
-            ),
-        },
-        "run": lambda inst: (inst.run(), inst.call_P[(0, 0)], inst.put_P[(0, 0)]),
-        "show_prices": lambda inst: (inst.call_P[(0, 0)], inst.put_P[(0, 0)]),
-    },
-    "Bachelier (Normal)": {
-        "constructor": Bachelier,
-        "params": {
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
-            "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
-            "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
-            "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
-            "volatility": ("Normal vol σₙ (price units)", 5.0, 1e-9, 1e6, 0.01),
-        },
-        "run": lambda inst: (inst.run(), inst.call_price, inst.put_price),
-        "show_prices": lambda inst: (inst.call_price, inst.put_price),
-    },
-    "Monte Carlo (GBM)": {
-        "constructor": MonteCarloGBM,
-        "params": {
-            "time_to_maturity": ("Time to maturity (years)", 0.5, 0.01, 50.0, 0.01),
-            "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
-            "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
-            "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
-            "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
-            "dividend_yield": ("Dividend yield q", 0.00, -1.0, 1.0, 0.01),
-            "is_american": (
-                "Exercise style",
-                0,
-                0,
-                1,
-                1,
-            ),
-            "n_paths": ("MC paths (integer)", 20000, 1000, 2_000_000, 1000),
-            "steps": ("LSM steps (American only)", 50, 1, 2000, 1),
-            "antithetic": ("Antithetic variates", 1, 0, 1, 1),  # 0/1 for your UI loop
-            "control_variate": ("Control variate (European only)", 1, 0, 1, 1),
-            "seed": ("Random seed (integer)", 42, 0, 2**31 - 1, 1),
-        },
-        "run": lambda inst: (inst.run(), inst.call_price, inst.put_price),
-        "show_prices": lambda inst: (inst.call_price, inst.put_price),
-    },
-}
+MODELS = make_models_dict()
 
 st.sidebar.title(":chart_with_upwards_trend: MultiModel Options")
 
@@ -150,7 +73,6 @@ st.sidebar.markdown(
     f'<a href="{linkedin_url}" target="_blank" style="text-decoration: none; color: inherit;"><img src="https://cdn-icons-png.flaticon.com/512/174/174857.png" width="24" height="24" style="vertical-align: middle; margin-right: 10px;">`Kamila Nurkhametova`</a>',
     unsafe_allow_html=True,
 )
-
 
 st.sidebar.markdown("## Choose a Model")
 model_name = st.sidebar.selectbox("Model", options=list(MODELS.keys()))
@@ -236,7 +158,6 @@ with pp:
         metric_box_html("PUT P&L", pnl_now_put, "metric-pnl"), unsafe_allow_html=True
     )
 
-
 # BUILD HEATMAPS
 S_grid = np.linspace(S_min, S_max, 10)
 V_grid = np.linspace(V_min, V_max, 10)
@@ -251,7 +172,6 @@ PNL_CALL, PNL_PUT = build_pnl_surfaces(
     purchase_price_call,
     purchase_price_put,
 )
-
 
 # PLOT HEATMAPS
 st.subheader("P&L Heatmaps (Spot \u00d7 Volatility)")

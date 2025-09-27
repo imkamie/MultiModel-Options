@@ -13,6 +13,21 @@ class BinomialTree:
         - Prices at t=0 are call_P[0, 0] and put_P[0, 0]
     """
 
+    PARAMS = {
+        "steps": ("Tree steps (integer)", 200, 1, 5000, 1),
+        "time_to_maturity": ("Time to maturity (years)", 0.5, 0.0, 50.0, 0.01),
+        "current_price": ("Spot price S", 100.0, 0.0001, 1e7, 0.1),
+        "strike_price": ("Strike K", 100.0, 0.0001, 1e7, 0.1),
+        "interest_rate": ("Risk-free r (cont.)", 0.02, -1.0, 1.0, 0.01),
+        "volatility": ("Volatility σ (lognormal)", 0.25, 1e-6, 5.0, 0.01),
+        "dividend_yield": ("Dividend yield q", 0.00, -1.0, 1.0, 0.01),
+        "is_american": ("Exercise style", 0, 0, 1, 1),
+    }
+
+    @staticmethod
+    def show_prices(inst):
+        return inst.call_P[(0, 0)], inst.put_P[(0, 0)]
+
     def __init__(
         self,
         steps: int,
